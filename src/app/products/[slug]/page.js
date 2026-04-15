@@ -8,6 +8,7 @@ import { ArrowLeft, ShoppingCart, Share2, Star, Check, Truck, Shield, RotateCcw 
 import { fetchProductBySlug } from "@/lib/products";
 import { addToCart, getCart } from "@/lib/cart";
 import BuyNowModal from "@/components/BuyNowModal";
+import ProductCard from "@/components/ProductCard";
 
 export default function ProductPage() {
   const params = useParams();
@@ -30,6 +31,8 @@ export default function ProductPage() {
   });
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
   const [reviewError, setReviewError] = useState('');
+  const [recommendedProducts, setRecommendedProducts] = useState([]);
+  const [recommendedLoading, setRecommendedLoading] = useState(false);
 
   // Fetch product by slug
   useEffect(() => {
@@ -106,6 +109,32 @@ export default function ProductPage() {
       window.removeEventListener('cart-updated', handleCartUpdate);
     };
   }, [product?.id]);
+
+  // Fetch recommended products from same category
+  useEffect(() => {
+    async function fetchRecommended() {
+      if (!product?.category || !product?.id) return;
+
+      setRecommendedLoading(true);
+      try {
+        const response = await fetch(`/api/products?category=${encodeURIComponent(product.category)}`);
+        if (response.ok) {
+          const products = await response.json();
+          // Filter out the current product and limit to 8 products
+          const filtered = products
+            .filter(p => p.id !== product.id)
+            .slice(0, 8);
+          setRecommendedProducts(filtered);
+        }
+      } catch (error) {
+        console.error('Error fetching recommended products:', error);
+      } finally {
+        setRecommendedLoading(false);
+      }
+    }
+
+    fetchRecommended();
+  }, [product?.category, product?.id]);
 
   if (loading) {
     return (
@@ -710,6 +739,55 @@ export default function ProductPage() {
           </div>
         </div>
       </section>
+
+      {/* Recommended Products Section */}
+      {recommendedProducts.length > 0 && (
+        <section className="py-12 px-4 sm:px-6 lg:px-8 bg-white">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                  You May Also Like
+                </h2>
+                <p className="text-gray-600">
+                  More {product.category} {product.emoji} products you might enjoy
+                </p>
+              </div>
+              <Link
+                href={`/${product.category.toLowerCase()}`}
+                className="hidden sm:inline-flex items-center gap-2 text-gray-900 hover:text-gray-700 font-medium"
+              >
+                View All
+                <ArrowLeft size={20} className="rotate-180" />
+              </Link>
+            </div>
+
+            {recommendedLoading ? (
+              <div className="text-center py-12">
+                <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-pink-500 border-r-transparent"></div>
+                <p className="mt-4 text-gray-600">Loading recommendations...</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                {recommendedProducts.map((recommendedProduct) => (
+                  <ProductCard key={recommendedProduct.id} product={recommendedProduct} />
+                ))}
+              </div>
+            )}
+
+            {/* Mobile View All Link */}
+            <div className="mt-6 text-center sm:hidden">
+              <Link
+                href={`/${product.category.toLowerCase()}`}
+                className="inline-flex items-center gap-2 text-gray-900 hover:text-gray-700 font-medium"
+              >
+                View All {product.category} Products
+                <ArrowLeft size={20} className="rotate-180" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Buy Now Modal */}
       {showBuyNowModal && (
