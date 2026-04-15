@@ -50,6 +50,9 @@ async function getProducts(filters = {}) {
 }
 
 export default async function Home() {
+  // Ensure database connection is established
+  await connectDB();
+
   // Fetch featured products, all products, and categories in parallel
   const [featuredProducts, allProducts, categories] = await Promise.all([
     getProducts({ featured: true }),
