@@ -5,15 +5,6 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getCart } from "@/lib/cart";
 
-const categories = [
-  { name: "all products", slug: "", emoji: "" },
-  { name: "Earrings", slug: "earrings", emoji: "✨" },
-  { name: "Hamper", slug: "hamper", emoji: "🎁" },
-  { name: "Rings", slug: "rings", emoji: "💍" },
-  { name: "Bracelet", slug: "bracelet", emoji: "💎" },
-  { name: "Necklace", slug: "necklace", emoji: "❤️" },
-];
-
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -133,44 +124,6 @@ export default function Header() {
           </form>
         </div>
       </div>
-
-      {/* Category Navigation */}
-      <nav className="border-t border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center justify-center space-x-8 py-3">
-            {categories.map((category) => (
-              <Link
-                key={category.slug}
-                href={`/${category.slug}`}
-                className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
-              >
-                {category.name} {category.emoji}
-              </Link>
-            ))}
-          </div>
-
-          {/* Mobile Navigation */}
-          <div
-            className={`md:hidden overflow-hidden transition-all duration-300 ${
-              isMenuOpen ? "max-h-96" : "max-h-0"
-            }`}
-          >
-            <div className="py-4 space-y-2">
-              {categories.map((category) => (
-                <Link
-                  key={category.slug}
-                  href={`/${category.slug}`}
-                  className="block px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {category.name} {category.emoji}
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      </nav>
     </header>
   );
 }

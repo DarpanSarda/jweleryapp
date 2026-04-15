@@ -1,12 +1,15 @@
 import HeroCarousel from "@/components/HeroCarousel";
 import FeaturedProductsCarousel from "@/components/FeaturedProductsCarousel";
-import ProductGrid from "@/components/ProductGrid";
+import FilterableProducts from "@/components/FilterableProducts";
 import connectDB from "@/lib/db";
 import Product from "@/models/Product";
-import Category from "@/models/Category"; // Import Category to ensure it's registered for populate
+import Category from "@/models/Category";
 
 async function getProducts(filters = {}) {
   await connectDB();
+
+  // Log database connection
+  console.log("Fetching products with filters:", filters);
 
   // Query for products that are NOT sold (either is_sold is false or doesn't exist)
   let query = { is_sold: { $ne: true } };
@@ -47,11 +50,27 @@ async function getProducts(filters = {}) {
 }
 
 export default async function Home() {
-  // Fetch featured products and all products in parallel
-  const [featuredProducts, allProducts] = await Promise.all([
+  // Fetch featured products, all products, and categories in parallel
+  const [featuredProducts, allProducts, categories] = await Promise.all([
     getProducts({ featured: true }),
-    getProducts()
+    getProducts(),
+    Category.find().sort({ display_order: 1 }).lean()
   ]);
+
+  console.log("Raw categories from DB:", categories);
+  console.log("Categories count:", categories?.length);
+
+  // Serialize categories for client component
+  const serializedCategories = categories.map(cat => ({
+    _id: cat._id.toString(),
+    name: cat.name,
+    slug: cat.slug,
+    emoji: cat.emoji,
+    description: cat.description
+  }));
+
+  console.log("Serialized categories:", serializedCategories);
+  console.log("Serialized categories count:", serializedCategories.length);
 
   return (
     <div className="min-h-screen">
@@ -78,8 +97,11 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* All Products Grid */}
-      <ProductGrid products={allProducts} title="All Products" />
+      {/* All Products with Filters */}
+      <FilterableProducts
+        initialProducts={allProducts}
+        categories={serializedCategories}
+      />
     </div>
   );
 }
