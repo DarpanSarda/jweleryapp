@@ -4,6 +4,9 @@ import Product from "@/models/Product";
 import Category from "@/models/Category";
 import Link from "next/link";
 
+// Force dynamic rendering to avoid build-time database connection issues
+export const dynamic = 'force-dynamic';
+
 async function getProductsByCategory(slug) {
   await connectDB();
 

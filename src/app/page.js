@@ -5,6 +5,9 @@ import connectDB from "@/lib/db";
 import Product from "@/models/Product";
 import Category from "@/models/Category";
 
+// Force dynamic rendering to avoid build-time database connection issues
+export const dynamic = 'force-dynamic';
+
 async function getProducts(filters = {}) {
   await connectDB();
 
