@@ -3,6 +3,7 @@ import Order from "@/models/Order";
 import Customer from "@/models/Customer";
 import Product from "@/models/Product";
 import Cart from "@/models/Cart";
+import { calculateShippingCost } from "@/config/shipping";
 import { NextResponse } from "next/server";
 
 // GET all orders (with optional filters)
@@ -119,16 +120,34 @@ export async function POST(request) {
       subtotal: item.subtotal
     }));
 
+    // Calculate shipping cost
+    const shippingDetails = calculateShippingCost(
+      body.customer_city,
+      body.customer_state,
+      body.shipping_method || 'standard',
+      cart.subtotal
+    );
+
+    // Calculate totals
+    const subtotal = cart.subtotal;
+    const discount = 0;
+    const shippingCharge = shippingDetails.cost;
+    const grandTotal = subtotal + shippingCharge - discount;
+
     // Create order
     const order = await Order.create({
       cart_id: cart._id,
       customer_id: customer?._id,
       order_number: orderNumber,
       items: orderItems,
-      subtotal: cart.subtotal,
-      shipping_charge: cart.shipping_charge,
-      discount: 0,
-      grand_total: cart.grand_total,
+      subtotal: subtotal,
+      shipping_charge: shippingCharge,
+      shipping_zone: shippingDetails.zone,
+      shipping_zone_name: shippingDetails.zone_name,
+      shipping_method: shippingDetails.method,
+      shipping_estimated_days: shippingDetails.estimated_days,
+      discount: discount,
+      grand_total: grandTotal,
       payment_method: 'COD',
       order_status: 'pending',
       user_name: body.customer_name,
@@ -150,6 +169,10 @@ export async function POST(request) {
         );
       })
     );
+
+    // Update cart before clearing
+    cart.shipping_charge = shippingCharge;
+    cart.grand_total = grandTotal;
 
     // Clear the cart after order
     cart.items = [];

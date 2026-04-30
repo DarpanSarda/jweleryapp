@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { X, MapPin, Phone, User, Plus, Minus, Trash2 } from "lucide-react";
+import { X, MapPin, Phone, User, Plus, Minus, Trash2, Truck } from "lucide-react";
 import toast from "react-hot-toast";
+import { calculateShippingCost, formatShippingCost } from "@/config/shipping";
 
 const BUSINESS_PHONE = "919023530845"; // Replace with actual business number
 const BUSINESS_NAME = "vezura";
@@ -14,9 +15,14 @@ export default function BuyNowModal({ product, initialQuantity, onClose }) {
     name: "",
     phone: "",
     address: "",
+    state: "",
     city: "",
     pincode: "",
   });
+  const [shippingMethod, setShippingMethod] = useState('standard');
+  const [states, setStates] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [shippingDetails, setShippingDetails] = useState(null);
 
   // Get max quantity from product stock
   const maxQuantity = product.stock_quantity || 10;
@@ -24,10 +30,64 @@ export default function BuyNowModal({ product, initialQuantity, onClose }) {
   useEffect(() => {
     // Prevent body scroll when modal is open
     document.body.style.overflow = "hidden";
+
+    // Load states from API
+    async function fetchStates() {
+      try {
+        const response = await fetch('/api/location/states');
+        if (response.ok) {
+          const data = await response.json();
+          setStates(data);
+        }
+      } catch (error) {
+        console.error('Error fetching states:', error);
+      }
+    }
+    fetchStates();
+
     return () => {
       document.body.style.overflow = "unset";
     };
   }, []);
+
+  // Load cities when state changes
+  useEffect(() => {
+    async function fetchCities() {
+      if (customerInfo.state) {
+        try {
+          const response = await fetch(`/api/location/cities?state=${encodeURIComponent(customerInfo.state)}`);
+          if (response.ok) {
+            const data = await response.json();
+            setCities(data);
+          }
+          // Reset city when state changes
+          setCustomerInfo(prev => ({ ...prev, city: '' }));
+        } catch (error) {
+          console.error('Error fetching cities:', error);
+          setCities([]);
+        }
+      } else {
+        setCities([]);
+      }
+    }
+    fetchCities();
+  }, [customerInfo.state]);
+
+  // Calculate shipping cost when city, state, or shipping method changes
+  useEffect(() => {
+    if (customerInfo.city && customerInfo.state) {
+      const totalPrice = product.price * quantity;
+      const details = calculateShippingCost(
+        customerInfo.city,
+        customerInfo.state,
+        shippingMethod,
+        totalPrice
+      );
+      setShippingDetails(details);
+    } else {
+      setShippingDetails(null);
+    }
+  }, [customerInfo.city, customerInfo.state, shippingMethod, quantity, product.price]);
 
   const handleQuantityChange = (change) => {
     const newQuantity = quantity + change;
@@ -37,9 +97,11 @@ export default function BuyNowModal({ product, initialQuantity, onClose }) {
   };
 
   const totalPrice = product.price * quantity;
+  const shippingCost = shippingDetails?.cost || 0;
+  const totalWithShipping = totalPrice + shippingCost;
 
   const handleWhatsAppOrder = async () => {
-    if (!customerInfo.name || !customerInfo.phone || !customerInfo.address || !customerInfo.city || !customerInfo.pincode) {
+    if (!customerInfo.name || !customerInfo.phone || !customerInfo.address || !customerInfo.state || !customerInfo.city || !customerInfo.pincode) {
       toast.error("Please fill in all required fields!");
       return;
     }
@@ -79,8 +141,12 @@ export default function BuyNowModal({ product, initialQuantity, onClose }) {
           customer_email: '',
           customer_address: customerInfo.address,
           customer_city: customerInfo.city,
-          customer_state: '',
+          customer_state: customerInfo.state,
           customer_pincode: customerInfo.pincode,
+          shipping_zone: shippingDetails?.zone,
+          shipping_zone_name: shippingDetails?.zone_name,
+          shipping_method: shippingMethod,
+          shipping_estimated_days: shippingDetails?.estimated_days,
           customer_notes: 'Order placed via Buy Now (WhatsApp)'
         })
       });
@@ -101,14 +167,23 @@ export default function BuyNowModal({ product, initialQuantity, onClose }) {
       message += `👤 *Customer Details:*\n`;
       message += `Name: ${customerInfo.name}\n`;
       message += `Phone: ${customerInfo.phone}\n`;
-      message += `Address: ${customerInfo.address}, ${customerInfo.city} - ${customerInfo.pincode}\n\n`;
+      message += `Address: ${customerInfo.address}, ${customerInfo.city}, ${customerInfo.state} - ${customerInfo.pincode}\n\n`;
 
       message += `📦 *Order Details:*\n`;
       message += `1. *${product.name}* ${product.emoji}\n`;
       message += `   Price: ₹${product.price} × ${quantity}\n`;
       message += `   Subtotal: ₹${totalPrice}\n\n`;
 
-      message += `💰 *Total Amount: ₹${totalPrice}*\n\n`;
+      if (shippingCost > 0) {
+        message += `🚚 *Shipping: ${shippingDetails?.zone_name}*\n`;
+        message += `   Method: ${shippingMethod === 'express' ? 'Express (Air)' : 'Standard'}\n`;
+        message += `   Cost: ₹${shippingCost}\n`;
+        message += `   Delivery: ${shippingDetails?.estimated_days}\n\n`;
+      } else {
+        message += `🚚 *Shipping: FREE*\n\n`;
+      }
+
+      message += `💰 *Total Amount: ₹${totalWithShipping}*\n\n`;
       message += `Thank you for shopping with ${BUSINESS_NAME}! 🎉\n`;
       message += `We will contact you shortly to confirm your order.`;
 
@@ -271,37 +346,146 @@ export default function BuyNowModal({ product, initialQuantity, onClose }) {
                     />
                   </div>
 
-                  {/* City and Pincode */}
+                  {/* State and City */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium text-gray-700 mb-2 block">
-                        City
+                        State *
                       </label>
-                      <input
-                        type="text"
+                      <select
+                        value={customerInfo.state}
+                        onChange={(e) =>
+                          setCustomerInfo({ ...customerInfo, state: e.target.value })
+                        }
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all"
+                      >
+                        <option value="">Select State</option>
+                        {states.map((state) => (
+                          <option key={state.code} value={state.name}>
+                            {state.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">
+                        City/District *
+                      </label>
+                      <select
                         value={customerInfo.city}
                         onChange={(e) =>
                           setCustomerInfo({ ...customerInfo, city: e.target.value })
                         }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all"
-                        placeholder="City"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-2 block">
-                        Pincode
-                      </label>
-                      <input
-                        type="text"
-                        value={customerInfo.pincode}
-                        onChange={(e) =>
-                          setCustomerInfo({ ...customerInfo, pincode: e.target.value })
-                        }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all"
-                        placeholder="Pincode"
-                      />
+                        disabled={!customerInfo.state}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      >
+                        <option value="">Select City</option>
+                        {cities.map((city) => (
+                          <option key={city} value={city}>
+                            {city}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
+
+                  {/* Pincode */}
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">
+                      Pincode *
+                    </label>
+                    <input
+                      type="text"
+                      value={customerInfo.pincode}
+                      onChange={(e) =>
+                        setCustomerInfo({ ...customerInfo, pincode: e.target.value })
+                      }
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all"
+                      placeholder="Pincode"
+                    />
+                  </div>
+
+                  {/* Shipping Method */}
+                  {customerInfo.city && customerInfo.state && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-3 block">
+                        Shipping Method *
+                      </label>
+                      <div className="space-y-2">
+                        <label className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${shippingMethod === 'standard' ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-gray-400'}`}>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="radio"
+                              name="shippingMethod"
+                              value="standard"
+                              checked={shippingMethod === 'standard'}
+                              onChange={(e) => setShippingMethod(e.target.value)}
+                              className="w-4 h-4 text-green-600"
+                            />
+                            <div>
+                              <p className="font-medium text-gray-900">Standard Shipping</p>
+                              <p className="text-xs text-gray-600">
+                                {shippingDetails?.estimated_days || '3-5 business days'}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="font-semibold text-gray-900">
+                            {shippingDetails?.method === 'standard' ? formatShippingCost(shippingDetails.cost) : '₹100'}
+                          </span>
+                        </label>
+
+                        <label className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${shippingMethod === 'express' ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-gray-400'}`}>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="radio"
+                              name="shippingMethod"
+                              value="express"
+                              checked={shippingMethod === 'express'}
+                              onChange={(e) => setShippingMethod(e.target.value)}
+                              className="w-4 h-4 text-green-600"
+                            />
+                            <div>
+                              <p className="font-medium text-gray-900">Express Shipping (Air)</p>
+                              <p className="text-xs text-gray-600">
+                                Urgent delivery · 1-2 business days
+                              </p>
+                            </div>
+                          </div>
+                          <span className="font-semibold text-gray-900">
+                            {shippingDetails?.method === 'express' ? formatShippingCost(shippingDetails.cost) : '₹150'}
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Order Summary */}
+                  {shippingDetails && (
+                    <div className="bg-blue-50 rounded-lg p-4 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-700">Subtotal:</span>
+                        <span className="font-medium">₹{totalPrice}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-700">Shipping:</span>
+                        <span className={`font-medium ${shippingDetails.is_free ? 'text-green-600' : 'text-gray-900'}`}>
+                          {shippingDetails.is_free ? 'FREE' : `₹${shippingCost}`}
+                        </span>
+                      </div>
+                      <div className="border-t border-blue-200 pt-2 mt-2">
+                        <div className="flex justify-between">
+                          <span className="font-semibold text-gray-900">Total:</span>
+                          <span className="font-bold text-gray-900">₹{totalWithShipping}</span>
+                        </div>
+                      </div>
+                      {shippingDetails.zone && (
+                        <div className="text-xs text-blue-700 flex items-center gap-1 pt-2">
+                          <Truck size={12} />
+                          <span>{shippingDetails.zone_name} · {shippingDetails.estimated_days}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -310,9 +494,21 @@ export default function BuyNowModal({ product, initialQuantity, onClose }) {
 
         {/* Footer */}
         <div className="border-t border-gray-200 p-6 bg-gray-50">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-gray-700">Total Amount:</span>
-            <span className="text-2xl font-bold text-gray-900">₹{totalPrice}</span>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-gray-700">Subtotal:</span>
+            <span className="text-lg font-semibold text-gray-900">₹{totalPrice}</span>
+          </div>
+          {shippingDetails && (
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-gray-700">Shipping:</span>
+              <span className={`text-lg font-semibold ${shippingDetails.is_free ? 'text-green-600' : 'text-gray-900'}`}>
+                {shippingDetails.is_free ? 'FREE' : `₹${shippingCost}`}
+              </span>
+            </div>
+          )}
+          <div className="flex items-center justify-between mb-4 pt-4 border-t border-gray-300">
+            <span className="text-gray-900 font-semibold">Total Amount:</span>
+            <span className="text-2xl font-bold text-gray-900">₹{totalWithShipping}</span>
           </div>
           <button
             onClick={handleWhatsAppOrder}

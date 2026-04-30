@@ -4,9 +4,10 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, ShoppingBag, User, MapPin, Phone, MessageCircle, Trash2, Plus, Minus } from "lucide-react";
+import { ArrowLeft, ShoppingBag, User, MapPin, Phone, MessageCircle, Trash2, Plus, Minus, Truck } from "lucide-react";
 import toast from "react-hot-toast";
 import { getCart, updateCartItemQuantity, removeFromCart, clearCart, addToCart } from "@/lib/cart";
+import { calculateShippingCost, formatShippingCost } from "@/config/shipping";
 
 const BUSINESS_PHONE = "919023530845"; // Replace with actual business number
 const BUSINESS_NAME = "vezura";
@@ -37,9 +38,14 @@ function CheckoutContent() {
     name: "",
     phone: "",
     address: "",
+    state: "",
     city: "",
     pincode: "",
   });
+  const [shippingMethod, setShippingMethod] = useState('standard'); // 'standard' or 'express'
+  const [states, setStates] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [shippingDetails, setShippingDetails] = useState(null);
 
   // Load product from URL params or database cart
   useEffect(() => {
@@ -96,6 +102,64 @@ function CheckoutContent() {
     loadCart();
   }, [productId, quantity]);
 
+  // Load states on component mount
+  useEffect(() => {
+    async function fetchStates() {
+      try {
+        const response = await fetch('/api/location/states');
+        if (response.ok) {
+          const data = await response.json();
+          setStates(data);
+        }
+      } catch (error) {
+        console.error('Error fetching states:', error);
+      }
+    }
+    fetchStates();
+  }, []);
+
+  // Load cities when state changes
+  useEffect(() => {
+    async function fetchCities() {
+      if (customerInfo.state) {
+        try {
+          const response = await fetch(`/api/location/cities?state=${encodeURIComponent(customerInfo.state)}`);
+          if (response.ok) {
+            const data = await response.json();
+            setCities(data);
+          }
+          // Reset city when state changes
+          setCustomerInfo(prev => ({ ...prev, city: '' }));
+        } catch (error) {
+          console.error('Error fetching cities:', error);
+          setCities([]);
+        }
+      } else {
+        setCities([]);
+      }
+    }
+    fetchCities();
+  }, [customerInfo.state]);
+
+  // Calculate shipping cost when city, state, or shipping method changes
+  useEffect(() => {
+    if (customerInfo.city && customerInfo.state) {
+      const subtotal = cartItems.reduce(
+        (sum, item) => sum + item.product.price * item.quantity,
+        0
+      );
+      const details = calculateShippingCost(
+        customerInfo.city,
+        customerInfo.state,
+        shippingMethod,
+        subtotal
+      );
+      setShippingDetails(details);
+    } else {
+      setShippingDetails(null);
+    }
+  }, [customerInfo.city, customerInfo.state, shippingMethod, cartItems]);
+
   // Calculate totals
   const subtotal = cartItems.reduce(
     (sum, item) => sum + item.product.price * item.quantity,
@@ -110,7 +174,8 @@ function CheckoutContent() {
     0
   );
 
-  const total = subtotal;
+  const shippingCost = shippingDetails?.cost || 0;
+  const total = subtotal + shippingCost;
 
   // Handle quantity change
   const updateQuantity = async (index, newQuantity) => {
@@ -158,7 +223,7 @@ function CheckoutContent() {
       return;
     }
 
-    if (!customerInfo.name || !customerInfo.phone || !customerInfo.address) {
+    if (!customerInfo.name || !customerInfo.phone || !customerInfo.address || !customerInfo.state || !customerInfo.city) {
       toast.error("Please fill in all required fields!");
       return;
     }
@@ -177,8 +242,12 @@ function CheckoutContent() {
           customer_email: '',
           customer_address: customerInfo.address,
           customer_city: customerInfo.city,
-          customer_state: '',
+          customer_state: customerInfo.state,
           customer_pincode: customerInfo.pincode,
+          shipping_zone: shippingDetails?.zone,
+          shipping_zone_name: shippingDetails?.zone_name,
+          shipping_method: shippingMethod,
+          shipping_estimated_days: shippingDetails?.estimated_days,
         })
       });
 
@@ -445,14 +514,36 @@ function CheckoutContent() {
                   </div>
                 </div>
 
-                {/* City & Pincode */}
+                {/* State & City */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      City *
+                      State *
                     </label>
-                    <input
-                      type="text"
+                    <select
+                      value={customerInfo.state}
+                      onChange={(e) =>
+                        setCustomerInfo({
+                          ...customerInfo,
+                          state: e.target.value,
+                        })
+                      }
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      required
+                    >
+                      <option value="">Select State</option>
+                      {states.map((state) => (
+                        <option key={state.code} value={state.name}>
+                          {state.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      City/District *
+                    </label>
+                    <select
                       value={customerInfo.city}
                       onChange={(e) =>
                         setCustomerInfo({
@@ -460,30 +551,93 @@ function CheckoutContent() {
                           city: e.target.value,
                         })
                       }
-                      placeholder="City"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      disabled={!customerInfo.state}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                       required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      PIN Code *
-                    </label>
-                    <input
-                      type="text"
-                      value={customerInfo.pincode}
-                      onChange={(e) =>
-                        setCustomerInfo({
-                          ...customerInfo,
-                          pincode: e.target.value,
-                        })
-                      }
-                      placeholder="PIN Code"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      required
-                    />
+                    >
+                      <option value="">Select City</option>
+                      {cities.map((city) => (
+                        <option key={city} value={city}>
+                          {city}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
+
+                {/* PIN Code */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    PIN Code *
+                  </label>
+                  <input
+                    type="text"
+                    value={customerInfo.pincode}
+                    onChange={(e) =>
+                      setCustomerInfo({
+                        ...customerInfo,
+                        pincode: e.target.value,
+                      })
+                    }
+                    placeholder="PIN Code"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+
+                {/* Shipping Method */}
+                {customerInfo.city && customerInfo.state && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Shipping Method *
+                    </label>
+                    <div className="space-y-2">
+                      <label className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer transition-colors ${shippingMethod === 'standard' ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-gray-400'}`}>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="radio"
+                            name="shippingMethod"
+                            value="standard"
+                            checked={shippingMethod === 'standard'}
+                            onChange={(e) => setShippingMethod(e.target.value)}
+                            className="w-4 h-4 text-green-600"
+                          />
+                          <div>
+                            <p className="font-medium text-gray-900">Standard Shipping</p>
+                            <p className="text-sm text-gray-600">
+                              {shippingDetails?.estimated_days || '3-5 business days'}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="font-semibold text-gray-900">
+                          {shippingDetails?.method === 'standard' ? formatShippingCost(shippingDetails.cost) : '₹100'}
+                        </span>
+                      </label>
+
+                      <label className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer transition-colors ${shippingMethod === 'express' ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-gray-400'}`}>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="radio"
+                            name="shippingMethod"
+                            value="express"
+                            checked={shippingMethod === 'express'}
+                            onChange={(e) => setShippingMethod(e.target.value)}
+                            className="w-4 h-4 text-green-600"
+                          />
+                          <div>
+                            <p className="font-medium text-gray-900">Express Shipping (Air)</p>
+                            <p className="text-sm text-gray-600">
+                              Urgent delivery · 1-2 business days
+                            </p>
+                          </div>
+                        </div>
+                        <span className="font-semibold text-gray-900">
+                          {shippingDetails?.method === 'express' ? formatShippingCost(shippingDetails.cost) : '₹150'}
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -510,7 +664,13 @@ function CheckoutContent() {
 
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
-                  <span className="text-green-600 font-medium">FREE</span>
+                  {shippingDetails ? (
+                    <span className={`font-medium ${shippingDetails.is_free ? 'text-green-600' : 'text-gray-900'}`}>
+                      {shippingDetails.is_free ? 'FREE' : `₹${shippingDetails.cost}`}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400">Select location</span>
+                  )}
                 </div>
 
                 <div className="border-t border-gray-200 pt-3 mt-3">
@@ -523,6 +683,13 @@ function CheckoutContent() {
                 {discount > 0 && (
                   <div className="bg-green-50 text-green-800 px-3 py-2 rounded-lg text-sm text-center">
                     You save ₹{discount} on this order!
+                  </div>
+                )}
+
+                {shippingDetails && shippingDetails.zone && (
+                  <div className="bg-blue-50 text-blue-800 px-3 py-2 rounded-lg text-sm flex items-center gap-2">
+                    <Truck size={16} />
+                    <span>{shippingDetails.zone_name} · {shippingDetails.estimated_days}</span>
                   </div>
                 )}
               </div>

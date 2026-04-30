@@ -10,25 +10,19 @@ const slides = [
     id: 1,
     title: "New Collection 2024",
     subtitle: "Discover our stunning new arrivals",
-    image: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=1600&h=600&fit=crop",
+    image: "/headerimages/IMG_2624.JPG.jpeg",
   },
   {
     id: 2,
     title: "Wedding Season Special",
     subtitle: "Make your special day unforgettable",
-    image: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=1600&h=600&fit=crop",
+    image: "/headerimages/IMG_2676.JPG.jpeg",
   },
   {
     id: 3,
     title: "50% Off Selected Items",
     subtitle: "Limited time offer - Don't miss out!",
-    image: "https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=1600&h=600&fit=crop",
-  },
-  {
-    id: 4,
-    title: "Handcrafted with Love",
-    subtitle: "Unique pieces for unique moments",
-    image: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=1600&h=600&fit=crop",
+    image: "/headerimages/IMG_2693.JPG.jpeg",
   },
 ];
 

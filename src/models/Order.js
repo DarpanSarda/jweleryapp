@@ -59,6 +59,19 @@ const orderSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
+  shipping_zone: {
+    type: String // 'ahmedabad', 'gujarat', 'mumbai', 'maharashtra', 'other_states', 'free'
+  },
+  shipping_zone_name: {
+    type: String // Display name for the zone
+  },
+  shipping_method: {
+    type: String, // 'standard' or 'express'
+    enum: ['standard', 'express']
+  },
+  shipping_estimated_days: {
+    type: String // Estimated delivery days
+  },
   grand_total: {
     type: Number,
     required: true,
