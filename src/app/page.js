@@ -96,9 +96,7 @@ export default async function Home() {
             Welcome to vezura
           </h2>
           <p className="text-lg text-gray-700 mb-8 max-w-2xl mx-auto">
-            Discover our stunning collection of handcrafted jewelry. From elegant
-            necklaces to sparkling earrings, find the perfect piece for every
-            occasion.
+            Each Vezura piece is created to celebrate your uniqueness—subtle, graceful, and made to shine with you wherever you go.
           </p>
         </div>
       </section>

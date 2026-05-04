@@ -474,26 +474,19 @@ export default function ProductPage() {
               )}
 
               {/* Features */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-gray-200">
-                <div className="flex items-center gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6 border-t border-gray-200">
+                {/* <div className="flex items-center gap-3">
                   <Truck size={24} className="text-gray-600" />
                   <div>
                     <p className="font-medium text-gray-900">Free Shipping</p>
-                    <p className="text-sm text-gray-600">On orders over ₹999</p>
+                    <p className="text-sm text-gray-600">On orders over ₹2999</p>
                   </div>
-                </div>
+                </div> */}
                 <div className="flex items-center gap-3">
                   <Shield size={24} className="text-gray-600" />
                   <div>
-                    <p className="font-medium text-gray-900">Secure Payment</p>
-                    <p className="text-sm text-gray-600">100% secure checkout</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <RotateCcw size={24} className="text-gray-600" />
-                  <div>
-                    <p className="font-medium text-gray-900">Easy Returns</p>
-                    <p className="text-sm text-gray-600">7 days return policy</p>
+                    <p className="font-medium text-gray-900">ONLY DEFECT RETURNS ALLOWED</p>
+                    <p className="text-sm text-gray-600">No returns on non-defective items</p>
                   </div>
                 </div>
               </div>
@@ -707,7 +700,7 @@ export default function ProductPage() {
             {activeTab === 'shipping' && (
               <div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                  Shipping Information
+                  Shipping & Returns
                 </h3>
                 <div className="prose prose-gray max-w-none">
                   <div className="space-y-4 text-gray-700">
@@ -728,8 +721,8 @@ export default function ProductPage() {
                     <div className="flex items-start gap-4">
                       <RotateCcw size={24} className="text-gray-600 mt-1" />
                       <div>
-                        <p className="font-medium text-gray-900">Easy Returns</p>
-                        <p>Not satisfied? Return within 7 days for a full refund. Items must be unused and in original packaging.</p>
+                        <p className="font-medium text-gray-900">ONLY DEFECT RETURNS ALLOWED</p>
+                        <p>Returns are only accepted for defective items. Please check your order carefully upon delivery. Contact us within 24 hours if you receive a defective product.</p>
                       </div>
                     </div>
                   </div>

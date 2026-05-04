@@ -8,20 +8,17 @@ import Image from "next/image";
 const slides = [
   {
     id: 1,
-    title: "New Collection 2024",
-    subtitle: "Discover our stunning new arrivals",
+    subtitle: "Necklace - From delicate layers to standard charms",
     image: "/headerimages/IMG_2624.JPG.jpeg",
   },
   {
     id: 2,
-    title: "Wedding Season Special",
-    subtitle: "Make your special day unforgettable",
+    subtitle: "Earrings - From minimal studs to bold drops",
     image: "/headerimages/IMG_2676.JPG.jpeg",
   },
   {
     id: 3,
-    title: "50% Off Selected Items",
-    subtitle: "Limited time offer - Don't miss out!",
+    subtitle: "Hampers - Perfect picks for every special moments",
     image: "/headerimages/IMG_2693.JPG.jpeg",
   },
 ];
