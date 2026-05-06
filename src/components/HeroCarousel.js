@@ -14,7 +14,7 @@ const slides = [
   {
     id: 2,
     subtitle: "Bracelets - Turn every gesture into power.",
-    image: "/headerimages/IMG_2824.JPG.jpeg",
+    image: "/headerimages/IMG_2813.JPG.jpeg",
   },
   {
     id: 3,
@@ -96,7 +96,7 @@ export default function HeroCarousel() {
               <div className="absolute inset-0">
                 <Image
                   src={slide.image}
-                  alt={slide.title}
+                  alt=""
                   fill
                   className="object-cover"
                   priority
