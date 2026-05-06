@@ -13,11 +13,16 @@ const slides = [
   },
   {
     id: 2,
+    subtitle: "Bracelets - Turn every gesture into power.",
+    image: "/headerimages/IMG_2824.JPG.jpeg",
+  },
+  {
+    id: 3,
     subtitle: "Earrings - From minimal studs to bold drops",
     image: "/headerimages/IMG_2676.JPG.jpeg",
   },
   {
-    id: 3,
+    id: 4,
     subtitle: "Hampers - Perfect picks for every special moments",
     image: "/headerimages/IMG_2693.JPG.jpeg",
   },
