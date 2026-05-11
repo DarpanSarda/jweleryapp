@@ -8,7 +8,6 @@ const productSchema = new mongoose.Schema({
   },
   slug: {
     type: String,
-    unique: true,
     lowercase: true,
     default: function() {
       // Generate slug from product_name if not provided

@@ -9,7 +9,6 @@ const categorySchema = new mongoose.Schema({
   },
   slug: {
     type: String,
-    unique: true,
     lowercase: true,
     default: function() {
       // Generate slug from name if not provided
