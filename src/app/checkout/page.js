@@ -711,26 +711,20 @@ function CheckoutContent() {
               </p>
 
               {/* Trust Badges */}
-              <div className="mt-6 pt-6 border-t border-gray-200 space-y-3">
+              {/* <div className="mt-6 pt-6 border-t border-gray-200 space-y-3">
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
                     <span className="text-green-600 text-xs">✓</span>
                   </div>
-                  <span>Secure payment via WhatsApp</span>
+                  <span>Free shipping on orders over ₹2999</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
                     <span className="text-green-600 text-xs">✓</span>
                   </div>
-                  <span>Free shipping on all orders</span>
+                  <span>ONLY DEFECT RETURNS ALLOWED</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
-                    <span className="text-green-600 text-xs">✓</span>
-                  </div>
-                  <span>7 days easy returns</span>
-                </div>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>
