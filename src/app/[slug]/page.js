@@ -80,7 +80,8 @@ async function getProductsByCategory(slug) {
 }
 
 export default async function CategoryPage({ params }) {
-  const data = await getProductsByCategory(params.slug);
+  const { slug } = await params;
+  const data = await getProductsByCategory(slug);
 
   // Category not found
   if (!data) {
